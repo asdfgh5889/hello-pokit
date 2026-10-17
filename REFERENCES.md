@@ -25,6 +25,9 @@ not endorsements or redistribution permissions; see [NOTICE](NOTICE.md).
   [IpcHandler](https://quickshell.org/docs/v0.3.2/types/Quickshell.Io/IpcHandler/),
   [Wayland types](https://quickshell.org/docs/v0.3.2/types/Quickshell.Wayland/):
   theme helper, watched palette, layer-shell dialog, and local status/preview IPC.
+- Quickshell [ElapsedTimer](https://quickshell.org/docs/v0.3.2/types/Quickshell/ElapsedTimer/)
+  and [implementation](https://git.outfoxxed.me/quickshell/quickshell/src/tag/v0.3.2/src/core/elapsedtimer.cpp):
+  monotonic age checks for the 15-second face-confirmation deadline.
 - Polkit [pkexec manual](https://polkit.pages.freedesktop.org/polkit/pkexec.1.html),
   [Polkit manual](https://polkit.pages.freedesktop.org/polkit/polkit.8.html),
   [pkexec source](https://github.com/polkit-org/polkit/blob/main/src/programs/pkexec.c),

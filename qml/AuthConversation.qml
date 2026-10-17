@@ -6,6 +6,7 @@ Item {
     id: conversation
     required property var flow
     required property var input
+    required property var verificationClock
     property bool submitting: false
     property bool forcePassword: false
     property string lastError: ""
@@ -14,6 +15,10 @@ Item {
     property var pendingProof: null
     property var heldKey: null
     property var pointerPress: null
+    readonly property int confirmationLifetimeMs: 15000
+    property bool faceExpired: false
+    property bool verificationStarted: false
+    property double verificationWallTime: 0
     // Updated only after clearing input, rather than binding the field to PAM echo.
     property bool responseEcho: false
 
@@ -21,16 +26,45 @@ Item {
     readonly property bool passwordChallenge: pending && !flow.responseVisible && AuthState.passwordPrompt(flow.inputPrompt)
     readonly property bool canSelectPassword: passwordChallenge && !submitting
     readonly property bool exposeResponse: responseEcho && !forcePassword
-    readonly property string confirmKind: proof && proof.generation === generation && sameContext(proof.context, context()) ?
+    readonly property string confirmKind: !faceExpired && proof && proof.generation === generation && sameContext(proof.context, context()) ?
         AuthState.confirmation(flow.inputPrompt, flow.supplementaryMessage, pending,
             flow.supplementaryIsError, flow.isCompleted, flow.responseVisible) : ""
     readonly property bool verified: confirmKind !== "" && !forcePassword
     readonly property bool cameraActive: !!flow && AuthState.cameraActive(flow.supplementaryMessage)
-    readonly property string fallbackReason: flow ? AuthState.fallbackReason(flow.supplementaryMessage) : ""
+    readonly property bool canSelectFace: !faceExpired && !submitting && (cameraActive || confirmKind !== "")
+    readonly property string fallbackReason: faceExpired ? "Face verification expired. Enter your password to continue." :
+        flow ? AuthState.fallbackReason(flow.supplementaryMessage) : ""
     readonly property bool needsInput: pending && !verified && (forcePassword || fallbackReason !== "" || !cameraActive)
     readonly property bool ready: pending && !submitting &&
         (verified || (needsInput && !!input && input.text.length > 0))
 
+    // Monotonic time protects against wall-clock adjustments. Wall time also
+    // rejects an old result after suspend, on platforms where steady time pauses.
+    Timer {
+        id: expirationTimer
+        interval: 250
+        repeat: true
+        onTriggered: conversation.checkExpiration()
+    }
+    function expireFace() {
+        if (!verificationStarted || faceExpired) return;
+        expirationTimer.stop();
+        faceExpired = true;
+        pendingProof = null;
+        invalidate();
+        if (passwordChallenge) choosePassword();
+        else {
+            clearInput();
+            // A typed confirmation has no password handoff; retire its request.
+            if (pending) flow.cancelAuthenticationRequest();
+        }
+    }
+    function checkExpiration() {
+        if (!verificationStarted || faceExpired) return;
+        const wallAge = Date.now() - verificationWallTime;
+        if (verificationClock.elapsedMs() >= confirmationLifetimeMs ||
+                wallAge >= confirmationLifetimeMs || wallAge < 0) expireFace();
+    }
     function context() {
         return flow ? {flow: flow, identity: flow.selectedIdentity, prompt: flow.inputPrompt,
             echo: flow.responseVisible, required: flow.isResponseRequired,
@@ -53,6 +87,10 @@ Item {
         Qt.callLater(commitProof);
     }
     function resetRequest() {
+        expirationTimer.stop();
+        verificationStarted = false;
+        verificationWallTime = 0;
+        faceExpired = false;
         pendingProof = null;
         boundary();
         forcePassword = false;
@@ -70,10 +108,18 @@ Item {
         // a newly observed token in that same coherent context; never re-read stale info.
         const candidate = pendingProof;
         pendingProof = null;
+        checkExpiration();
+        if (faceExpired) return;
         if (!candidate || !sameContext(candidate.context, context()) || !pending) return;
         const kind = AuthState.confirmation(flow.inputPrompt, flow.supplementaryMessage,
             pending, flow.supplementaryIsError, flow.isCompleted, flow.responseVisible);
         if (kind !== candidate.kind) return;
+        if (!verificationStarted) {
+            verificationClock.restart();
+            verificationWallTime = Date.now();
+            verificationStarted = true;
+            expirationTimer.start();
+        }
         // A face result is informational while the user is explicitly entering
         // a password for this same masked challenge. Do not erase that draft.
         // Actual prompt/echo/identity boundaries still clear it in boundary().
@@ -88,20 +134,25 @@ Item {
         return true;
     }
     function chooseFace() {
+        checkExpiration();
+        if (!canSelectFace) return false;
         clearInput();
         forcePassword = false;
+        return true;
     }
     function snapshot() {
         return {context: context(), generation: generation, kind: verified ? confirmKind : "response",
             password: forcePassword};
     }
     function matches(snapshot) {
+        checkExpiration();
         return !!snapshot && ready && snapshot.generation === generation &&
             sameContext(snapshot.context, context()) && snapshot.password === forcePassword &&
             snapshot.kind === (verified ? confirmKind : "response");
     }
     function keyPressed(key, repeat) {
         if (repeat) return;
+        checkExpiration();
         heldKey = ready ? {key: key, snapshot: snapshot()} : null;
     }
     function keyReleased(key, repeat) {
@@ -117,7 +168,10 @@ Item {
         if (pressed) keyPressed(event.key, event.isAutoRepeat);
         else keyReleased(event.key, event.isAutoRepeat);
     }
-    function beginPointer() { pointerPress = ready ? snapshot() : null; }
+    function beginPointer() {
+        checkExpiration();
+        pointerPress = ready ? snapshot() : null;
+    }
     function confirmPointer() {
         const press = pointerPress;
         pointerPress = null;
@@ -127,6 +181,7 @@ Item {
         if (!matches(press)) return;
         const request = flow;
         const answer = verified ? (confirmKind === "yes" ? "yes" : "") : input.text;
+        expirationTimer.stop();
         pendingProof = null;
         invalidate();
         submitting = true;
@@ -134,6 +189,7 @@ Item {
         request.submit(answer);
     }
     function cancel() {
+        expirationTimer.stop();
         pendingProof = null;
         invalidate();
         clearInput();

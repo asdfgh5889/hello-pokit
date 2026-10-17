@@ -58,7 +58,9 @@ before redistributing reference-derived material.
 `make test` runs isolated installation/backup/manifest/theme tests and offscreen
 Qt tests for confirmation guards, held/repeated keys, challenge/identity changes,
 password-to-visible-response transitions, mouse consent, fallback messages,
-reference poses, interpolated motion, scan looping, and success holding. Images are saved under
+reference poses, interpolated motion, scan looping, and success holding. A headless
+stock-Quickshell check also exercises the real monotonic clock and 15-second
+face-confirmation expiry with a mock conversation. Images are saved under
 `.cache/test-artifacts/`. Set `QMLTESTRUNNER=/path/to/qt6/qmltestrunner` if detection
 fails. These checks never register an agent, invoke Polkit, alter the real XDG
 configuration, or activate services.

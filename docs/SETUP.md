@@ -48,6 +48,20 @@ selector alone does not cancel Gaze's internal camera task; submission retires t
 biometric path. Prompt/echo/identity changes still clear the draft. Face
 confirmation still requires a fresh Allow/Enter action when Face is selected.
 
+In Hello Polkit, a face match can be confirmed for **15 seconds** after it is
+received. Expiry clears face confirmation, disables the Face choice for that
+request, and shows “Face verification expired” with password entry. Selecting
+methods does not renew the deadline. An existing password draft stays masked and
+is preserved. Cancel and retry the application action to start fresh recognition.
+The legacy typed-`yes` confirmation has no password handoff and is cancelled on
+expiry instead.
+
+The deadline uses stock Quickshell's monotonic `ElapsedTimer`, with an additional
+wall-clock check for suspend or a backward clock change. Every submission checks
+the deadline, even if the UI timer has not run yet. This is a frontend rule in
+Hello Polkit; it does not add a timeout inside Gaze/PAM or apply to other agents,
+terminal sudo, lock screens, or authorizations already granted by Polkit.
+
 For this already-configured Arch/CachyOS stack only, an explicit optional command
 is `pkexec /usr/bin/python3 tools/configure-polkit-pam.py`. It checks the existing
 line, preserves the surrounding stack, and backs up the original under

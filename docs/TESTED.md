@@ -93,3 +93,26 @@ A real `/usr/bin/true` Polkit request exposed a pending response while scanning
 the user selected Password and confirmed that password authentication succeeded.
 The command exited 0. Clicking the selector alone does not stop Gaze's camera
 task; submitting the password bypasses the biometric path.
+
+## Face-confirmation expiry (2026-10-17)
+
+Hello Polkit now limits a received face match to 15 seconds. A stock Quickshell
+monotonic clock and a wall-clock guard are checked at submission as well as by a
+periodic UI timer. Expiry invalidates key and pointer confirmation, disables Face
+for that request, and requires a nonempty password. Method changes and repeated
+information cannot renew the match. A password already being typed is preserved;
+legacy typed-confirmation requests are cancelled instead of exposing password
+entry. This rule belongs to this frontend, not Gaze's PAM module.
+
+Validation: 7 Python checks and 49 Qt checks passed. Regression coverage includes
+the real 15-second timer, stale key/pointer actions before timer dispatch,
+monotonic and wall-clock deadlines, method changes, repeated old information,
+password-draft preservation, typed-confirmation cancellation, and a new request
+after expiry. A separate headless stock-Quickshell integration check used its real
+`ElapsedTimer`: a match expired after 15 seconds, an empty confirmation was
+blocked, and a synthetic nonempty password was handed off. No window or Polkit
+agent is created by this integration check.
+
+The two installed QML files match these project sources byte for byte, and the
+updated agent registered successfully. The local update backs up the previous
+runtime. PAM, Gaze configuration, sudo, and the lockscreen were not modified.

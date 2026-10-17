@@ -12,6 +12,7 @@ See [notices and asset provenance](NOTICE.md).
 - With Gaze's simultaneous PAM mode, Password can be selected while scanning;
   a later face result does not erase a password draft for the same challenge.
 - Clear face-success state; explicit **Allow / fresh Enter press-and-release** confirmation when Gaze confirmation is enabled.
+- Face confirmation expires after 15 seconds in this dialog, then requires a password.
 - Noctalia colors, font family, corner radii, and button styling update with the theme.
 - Smooth vector face animation ending in Tux; correctly rounded footer corners.
 - Request text and action ID under Details. Stock Quickshell does not expose full
@@ -39,7 +40,7 @@ Polkit, MATE Polkit, and a Wayland compositor with layer-shell support. Noctalia
 
 ```sh
 make preview          # mock only: does not register an agent or authenticate
-make test             # Python + offscreen Qt tests; requires Qt 6 qmltestrunner
+make test             # Python + offscreen Qt/Quickshell tests; requires qmltestrunner
 make build            # offline portable bundle: dist/hello-polkit, with hash manifest
 make install          # back up and copy user files; does not switch the running agent
 make activate         # switch agents after reviewing setup; restore MATE on failure

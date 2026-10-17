@@ -11,6 +11,13 @@ TestCase {
     width: 420; height: 180
     property var currentFlow: null
     property bool revealedOldText: false
+    QtObject {
+        id: testClock
+        property double startedAt: 0
+        property double advanceMs: 0
+        function restart() { startedAt = Date.now(); advanceMs = 0; }
+        function elapsedMs() { return Date.now() - startedAt + advanceMs; }
+    }
     Component { id: flowComponent; MockAuthFlow {} }
     property var mockTheme: ({fontFamily: "sans-serif", iconFont: "sans-serif",
         text: "#ffffff", muted: "#aaaaaa", primary: "#e6b450", onPrimary: "#000000",
@@ -19,6 +26,7 @@ TestCase {
         id: auth
         flow: test.currentFlow
         input: response
+        verificationClock: testClock
     }
     UI.AuthResponseField {
         id: response
@@ -290,5 +298,103 @@ TestCase {
         compare(currentFlow.submittedResponses.length, 0);
         keyClick(Qt.Key_Return);
         compare(currentFlow.submittedResponses.length, 1);
+    }
+    function test_faceExpiresAfterFifteenSecondsWithoutSubmitting() {
+        faceMatch();
+        compare(auth.confirmationLifetimeMs, 15000);
+        verify(auth.ready);
+        tryCompare(auth, "faceExpired", true, 16000);
+        verify(!auth.verified);
+        verify(!auth.ready);
+        verify(auth.forcePassword);
+        verify(auth.needsInput);
+        verify(auth.fallbackReason.indexOf("expired") >= 0);
+        compare(currentFlow.submittedResponses.length, 0);
+        keyClick(Qt.Key_Return);
+        mouseClick(allow);
+        compare(currentFlow.submittedResponses.length, 0);
+        response.text = "SYNTHETIC-SECRET";
+        keyClick(Qt.Key_Return);
+        compare(currentFlow.submittedResponses[0], "SYNTHETIC-SECRET");
+    }
+    function test_lateTimerCannotAllowStaleKeyOrPointerConfirmation() {
+        faceMatch();
+        auth.keyPressed(Qt.Key_Return, false);
+        auth.beginPointer();
+        // Model a deadline reached before the timer's event can be dispatched.
+        auth.verificationWallTime = Date.now() - auth.confirmationLifetimeMs;
+        auth.keyReleased(Qt.Key_Return, false);
+        auth.confirmPointer();
+        verify(auth.faceExpired);
+        compare(currentFlow.submittedResponses.length, 0);
+    }
+    function test_methodSwitchDoesNotRenewFaceMatch() {
+        faceMatch();
+        const originalTime = auth.verificationWallTime;
+        verify(auth.choosePassword());
+        verify(auth.chooseFace());
+        compare(auth.verificationWallTime, originalTime);
+        auth.verificationWallTime = Date.now() - auth.confirmationLifetimeMs;
+        verify(!auth.chooseFace());
+        verify(auth.faceExpired);
+        verify(!auth.canSelectFace);
+    }
+    function test_expiredMatchCannotBeRevivedByOldInformation() {
+        faceMatch();
+        auth.expireFace();
+        currentFlow.supplementaryMessage = "Please look at the camera";
+        currentFlow.supplementaryMessage = AuthState.verifiedInfo;
+        wait(0);
+        verify(auth.faceExpired);
+        verify(!auth.verified);
+        verify(!auth.chooseFace());
+        keyClick(Qt.Key_Return);
+        compare(currentFlow.submittedResponses.length, 0);
+    }
+    function test_expiryPreservesSelectedPasswordDraft() {
+        faceMatch();
+        verify(auth.choosePassword());
+        response.text = "SYNTHETIC-SECRET";
+        auth.expireFace();
+        compare(response.text, "SYNTHETIC-SECRET");
+        compare(response.echoMode, TextInput.Password);
+        verify(auth.ready);
+        keyClick(Qt.Key_Return);
+        compare(currentFlow.submittedResponses[0], "SYNTHETIC-SECRET");
+    }
+    function test_typedConfirmationExpiryCancelsInsteadOfAcceptingPassword() {
+        currentFlow.responseVisible = true;
+        currentFlow.inputPrompt = AuthState.typedConfirmationPrompt;
+        tryCompare(auth, "verified", true);
+        auth.expireFace();
+        verify(currentFlow.isCancelled);
+        verify(!auth.ready);
+        compare(currentFlow.submittedResponses.length, 0);
+    }
+    function test_newRequestCanRecognizeAfterPreviousExpiry() {
+        faceMatch();
+        auth.expireFace();
+        currentFlow = createTemporaryObject(flowComponent, test);
+        wait(0);
+        verify(!auth.faceExpired);
+        verify(!auth.verificationStarted);
+        faceMatch();
+        verify(auth.verified);
+        keyClick(Qt.Key_Return);
+        compare(currentFlow.submittedResponses[0], "");
+    }
+    function test_backwardClockChangeExpiresFaceMatch() {
+        faceMatch();
+        auth.verificationWallTime = Date.now() + 60000;
+        keyClick(Qt.Key_Return);
+        verify(auth.faceExpired);
+        compare(currentFlow.submittedResponses.length, 0);
+    }
+    function test_monotonicDeadlineBlocksSubmissionBeforeTimerDispatch() {
+        faceMatch();
+        testClock.advanceMs = auth.confirmationLifetimeMs;
+        keyClick(Qt.Key_Return);
+        verify(auth.faceExpired);
+        compare(currentFlow.submittedResponses.length, 0);
     }
 }

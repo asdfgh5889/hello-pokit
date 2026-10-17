@@ -83,6 +83,7 @@ ShellRoot {
                 active: !!root.flow, action: root.actionId, verified: root.verified,
                 password: root.needsInput, scanning: root.scanning, submitting: root.submitting,
                 responseRequired: !!root.flow && root.flow.isResponseRequired,
+                faceExpired: authConversation.faceExpired,
                 fontFamily: paletteTheme.fontFamily, cornerRadiusScale: paletteTheme.cornerRadiusScale,
                 cardRadius: card.radius, animationFrame: faceVisual.frameIndex});
         }
@@ -120,10 +121,12 @@ ShellRoot {
             }
         }
     }
+    ElapsedTimer { id: faceConfirmationClock }
     AuthConversation {
         id: authConversation
         flow: root.flow
         input: response
+        verificationClock: faceConfirmationClock
     }
     onFlowChanged: {
         showDetails = false;
@@ -180,10 +183,10 @@ ShellRoot {
                         theme: paletteTheme
                         selected: !root.needsInput
                         Layout.fillWidth: true
-                        enabled: !root.submitting && (root.preview || root.cameraActive || root.confirmKind !== "")
+                        enabled: root.preview || authConversation.canSelectFace
                         onClicked: {
                             if (root.preview) root.previewState = "scanning";
-                            authConversation.chooseFace();
+                            if (!root.preview && !authConversation.chooseFace()) return;
                             methodMenu.close();
                             if (root.verified) allow.forceActiveFocus();
                         }
@@ -355,7 +358,7 @@ ShellRoot {
                     Layout.leftMargin: 28
                     Layout.rightMargin: 28
                     Layout.topMargin: 8
-                    text: root.verified ? "Confirm below or press Enter to continue." : root.needsInput ? (root.passwordResponse ? (root.fallbackReason || "Enter your account password to authorize.") : "Enter the requested response to continue.") : root.submitting ? "Checking your response…" : "Look at the camera. You’ll confirm before continuing."
+                    text: root.verified ? "Confirm below or press Enter within 15 seconds." : root.needsInput ? (root.passwordResponse ? (root.fallbackReason || "Enter your account password to authorize.") : "Enter the requested response to continue.") : root.submitting ? "Checking your response…" : "Look at the camera. You’ll confirm before continuing."
                     color: paletteTheme.muted
                     textFormat: Text.PlainText
                     font.pixelSize: 13
