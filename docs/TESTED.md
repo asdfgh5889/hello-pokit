@@ -60,6 +60,12 @@ A separate hidden mock-backend run injected native Qt key events into the full
 Quickshell dialog's card, response field, and Allow button. All three rejected
 repeats and accepted a fresh press/release. No real credentials were used.
 
+The updated installed agent registered successfully. A real Polkit request first
+completed through password fallback after Gaze timed out; a second request
+completed through face authentication. The user confirmed that Face verified
+waited for a fresh Enter press/release or Allow click before succeeding. The
+installed security components match the tested project sources byte for byte.
+
 These changes address frontend findings 2, 3, and 4 from the security review. They
 do not resolve the upstream Quickshell request-queue concern or installer rollback
 finding. Clearing input is not a guarantee of secure memory erasure.
