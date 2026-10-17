@@ -69,3 +69,27 @@ installed security components match the tested project sources byte for byte.
 These changes address frontend findings 2, 3, and 4 from the security review. They
 do not resolve the upstream Quickshell request-queue concern or installer rollback
 finding. Clearing input is not a guarantee of secure memory erasure.
+
+## Immediate password selection (2026-10-17)
+
+The local Polkit PAM entry was changed from sequential Gaze to
+`auth sufficient pam_gaze.so simultaneous`, preserving the surrounding
+distribution stack and elevation confirmation. The optional explicit setup helper
+backs up the original PAM file; the user installer does not invoke it.
+
+The UI now preserves a selected password draft when a same-challenge face-success
+or fallback informational message arrives. Real prompt, echo, identity, request,
+and retry boundaries still clear drafts. Selecting Password never submits an
+empty face confirmation; a nonempty response goes through Gaze's password handoff
+to the distribution stack.
+
+Validation: 7 Python checks and 40 Qt checks passed. New regression cases cover
+password selection during scanning, preserving a draft across late face success
+and scan failure, and clearing at actual challenge changes. The installed
+`AuthConversation.qml` matches the tested source byte for byte.
+
+A real `/usr/bin/true` Polkit request exposed a pending response while scanning
+59 ms after launch. The dialog subsequently waited in face-confirmation state;
+the user selected Password and confirmed that password authentication succeeded.
+The command exited 0. Clicking the selector alone does not stop Gaze's camera
+task; submitting the password bypasses the biometric path.

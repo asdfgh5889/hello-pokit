@@ -216,6 +216,48 @@ TestCase {
         compare(currentFlow.submittedResponses[0], "SYNTHETIC-SECRET");
         compare(response.text, "");
     }
+    function test_passwordCanBeSelectedDuringScan() {
+        currentFlow.supplementaryMessage = "Please look at the camera or enter password";
+        verify(auth.cameraActive);
+        verify(auth.canSelectPassword);
+        verify(auth.choosePassword());
+        verify(auth.needsInput);
+        response.text = "SYNTHETIC-SECRET";
+        keyClick(Qt.Key_Return);
+        compare(currentFlow.submittedResponses[0], "SYNTHETIC-SECRET");
+        compare(response.text, "");
+    }
+    function test_faceMatchCannotEraseOrSubmitSelectedPassword() {
+        currentFlow.supplementaryMessage = "Please look at the camera or enter password";
+        verify(auth.choosePassword());
+        response.text = "SYNTHETIC-SECRET";
+        currentFlow.supplementaryMessage = AuthState.verifiedInfo;
+        wait(0);
+        verify(!auth.verified);
+        verify(auth.needsInput);
+        compare(response.text, "SYNTHETIC-SECRET");
+        compare(response.echoMode, TextInput.Password);
+        compare(currentFlow.submittedResponses.length, 0);
+        keyClick(Qt.Key_Return);
+        compare(currentFlow.submittedResponses[0], "SYNTHETIC-SECRET");
+    }
+    function test_scanFailureDoesNotEraseSelectedPassword() {
+        currentFlow.supplementaryMessage = "Please look at the camera or enter password";
+        verify(auth.choosePassword());
+        response.text = "SYNTHETIC-SECRET";
+        currentFlow.supplementaryMessage = "Face not recognized. Enter your password.";
+        wait(0);
+        compare(response.text, "SYNTHETIC-SECRET");
+        verify(auth.choosePassword());
+        compare(response.text, "SYNTHETIC-SECRET");
+    }
+    function test_passwordModeStillClearsOnActualChallengeBoundary() {
+        verify(auth.choosePassword());
+        response.text = "SYNTHETIC-SECRET";
+        currentFlow.inputPrompt = "Verification code:";
+        compare(response.text, "");
+        verify(!auth.forcePassword);
+    }
     function test_genericEchoOnChallengeDoesNotReuseSecret() {
         response.text = "SYNTHETIC-SECRET";
         currentFlow.inputPrompt = "One-time code:";

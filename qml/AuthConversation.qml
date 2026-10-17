@@ -74,11 +74,15 @@ Item {
         const kind = AuthState.confirmation(flow.inputPrompt, flow.supplementaryMessage,
             pending, flow.supplementaryIsError, flow.isCompleted, flow.responseVisible);
         if (kind !== candidate.kind) return;
-        clearInput();
+        // A face result is informational while the user is explicitly entering
+        // a password for this same masked challenge. Do not erase that draft.
+        // Actual prompt/echo/identity boundaries still clear it in boundary().
+        if (!forcePassword) clearInput();
         proof = {context: candidate.context, generation: generation};
     }
     function choosePassword() {
         if (!canSelectPassword) return false;
+        if (forcePassword) return true;
         clearInput();
         forcePassword = true;
         return true;

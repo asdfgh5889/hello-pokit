@@ -29,8 +29,8 @@ challenges display a generic response label and their actual prompt.
 Use `templates/gaze-auth.example.toml` as a merge example. Keep password fallback.
 Gaze changes may require restarting `gazed` through your normal administration UI.
 
-On the tested Arch system, `/etc/pam.d/polkit-1` has a **sequential**
-`auth sufficient pam_gaze.so` before `auth include system-auth`; the complete
+On the tested Arch system, `/etc/pam.d/polkit-1` uses **simultaneous** mode:
+`auth sufficient pam_gaze.so simultaneous` before `auth include system-auth`; the complete
 local example is `templates/polkit-1.arch.example`. This is not a portable
 replacement for other distributions' PAM stacks. Review the original file, back
 it up, retain a working administrative session, and merge only the appropriate
@@ -38,6 +38,22 @@ Gaze line. Follow Gaze's distribution-specific PAM guide in [references](../REFE
 These files are never applied by `make install`. Use Polkit for administrative
 commands on this setup (for example `pkexec systemctl restart gazed`), rather
 than feeding a password to a script. This project does not alter `sudo` or SSH.
+
+Simultaneous mode makes the masked password challenge available while the camera
+is scanning, so Sign-in options → Password works immediately. Selecting Password
+keeps that mode even if a face match arrives; a same-challenge informational face
+result does not erase the typed password. Submitting a nonempty password passes it
+to the distribution password stack and bypasses face confirmation. Clicking the
+selector alone does not cancel Gaze's internal camera task; submission retires the
+biometric path. Prompt/echo/identity changes still clear the draft. Face
+confirmation still requires a fresh Allow/Enter action when Face is selected.
+
+For this already-configured Arch/CachyOS stack only, an explicit optional command
+is `pkexec /usr/bin/python3 tools/configure-polkit-pam.py`. It checks the existing
+line, preserves the surrounding stack, and backs up the original under
+`/var/lib/hello-polkit/pam-backups/`. Fresh authentication requests read the change;
+no system Polkit restart is required. This command is never invoked by the user
+installer or activation tools.
 
 ## User-local installation
 

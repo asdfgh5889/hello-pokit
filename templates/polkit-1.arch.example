@@ -1,7 +1,7 @@
 # Example only: review your distribution's original stack before merging.
 #%PAM-1.0
 -auth requisite pam_faillock.so preauth
-auth sufficient pam_gaze.so
+auth sufficient pam_gaze.so simultaneous
 auth include system-auth
 account include system-auth
 password include system-auth

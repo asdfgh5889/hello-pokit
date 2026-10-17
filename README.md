@@ -9,6 +9,8 @@ This is an experimental personal setup, not a supported authentication product.
 See [notices and asset provenance](NOTICE.md).
 
 - Face recognition first through Gaze/PAM; password fallback and a Sign-in options menu.
+- With Gaze's simultaneous PAM mode, Password can be selected while scanning;
+  a later face result does not erase a password draft for the same challenge.
 - Clear face-success state; explicit **Allow / fresh Enter press-and-release** confirmation when Gaze confirmation is enabled.
 - Noctalia colors, font family, corner radii, and button styling update with the theme.
 - Smooth vector face animation ending in Tux; correctly rounded footer corners.
@@ -49,6 +51,11 @@ For an already configured Gaze system, review the Noctalia/PAM notes before
 activation. The installer does **not** install packages, edit PAM, enroll faces,
 or change system-wide authentication settings. Previewing is safe alongside the
 installed agent.
+
+The separate, optional `tools/configure-polkit-pam.py` is an explicitly invoked
+Polkit-only setup helper for the existing Arch/CachyOS PAM stack. Run it through
+`pkexec` only after reviewing [setup](docs/SETUP.md); it preserves a system backup
+and is never called by `make install` or `make activate`.
 
 The generated motion, SVG input, icon font, and notices are committed. Normal
 builds need no downloads, compiler, Python packages, or upstream patches.
