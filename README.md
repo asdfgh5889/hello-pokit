@@ -17,6 +17,17 @@ See [notices and asset provenance](NOTICE.md).
 - MATE starts if the agent crashes or cannot register. Terminal `sudo`, SSH,
   login, and lock-screen configuration are outside this frontend's scope.
 
+## Screenshots
+
+Actual QML preview renders using the Noctalia Ayu Dark palette and a sample
+account. No real authorization request or password is shown.
+
+| Looking for you | Face verified — waiting for confirmation |
+| --- | --- |
+| <img src="docs/screenshots/scanning.png" alt="Face recognition scanning dialog" width="330"> | <img src="docs/screenshots/verified.png" alt="Face verified with explicit Allow button" width="330"> |
+| **Password fallback** | **Request details** |
+| <img src="docs/screenshots/fallback.png" alt="Password fallback after face recognition fails" width="330"> | <img src="docs/screenshots/details.png" alt="Expanded request text and Polkit action details" width="330"> |
+
 ## Try and reproduce
 
 Runtime: Python ≥3.12, stock Quickshell 0.3.2, Qt 6.12 QML/Quick Controls/Shapes,
