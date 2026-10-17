@@ -1,0 +1,5 @@
+# Merge these keys into the existing [auth] table in /etc/gaze/config.toml.
+# This is a partial example, not a replacement daemon configuration.
+[auth]
+abort_if_ssh = true
+require_confirmation_elevation = true

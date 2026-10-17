@@ -1,0 +1,7 @@
+# Managed by hello-polkit. Other Noctalia settings remain in their own files.
+[shell]
+polkit_agent = false
+
+[theme.templates.user.hello_polkit]
+input_path = @INPUT@
+output_path = @OUTPUT@

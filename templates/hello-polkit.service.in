@@ -1,0 +1,17 @@
+[Unit]
+Description=Hello-style Polkit UI on the stock Quickshell backend
+PartOf=graphical-session.target
+After=graphical-session.target
+Conflicts=mate-polkit.service
+OnFailure=mate-polkit.service
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+Type=exec
+Environment=HELLO_POLKIT_PREVIEW=0
+UnsetEnvironment=HELLO_POLKIT_PREVIEW_SUCCESS HELLO_POLKIT_PREVIEW_STATE HELLO_POLKIT_CAPTURE_DIR
+ExecStart=@QS@ --no-duplicate --path @SHELL@
+Restart=no
+
+[Install]
+WantedBy=graphical-session.target

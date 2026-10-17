@@ -1,0 +1,32 @@
+[
+  {
+    "file": "windows.ui.biofeedback.dll",
+    "version": "10.0.28000.2336 (WinBuild.160101.0800)",
+    "sha256": "a794bd074279245ec75d6286c56f3edfda920e6486680f3abe08968248fdbe16",
+    "url": "https://msdl.microsoft.com/download/symbols/windows.ui.biofeedback.dll/1461ACD01bc000/windows.ui.biofeedback.dll"
+  },
+  {
+    "file": "Windows.UI.CredDialogController.dll",
+    "version": "10.0.26100.9278 (WinBuild.160101.0800)",
+    "sha256": "c1b862c378cb189a2ec50bcfe68bc3f0bf41879b9c9decbdc2b37772cf1ea40a",
+    "url": "https://msdl.microsoft.com/download/symbols/windows.ui.creddialogcontroller.dll/E64445C56e000/windows.ui.creddialogcontroller.dll"
+  },
+  {
+    "file": "windows.ui.logon.dll",
+    "version": "10.0.28000.1896 (WinBuild.160101.0800)",
+    "sha256": "543f2a14389a9c27ed911f9000dba230af83b291787ad0998273fb978a40f16a",
+    "url": "https://msdl.microsoft.com/download/symbols/windows.ui.logon.dll/15E5DE8540d000/windows.ui.logon.dll"
+  },
+  {
+    "file": "authui.dll",
+    "version": "10.0.28000.1643 (WinBuild.160101.0800)",
+    "sha256": "68c355cc7457ed17818477597c6972d294bf0d46a3b3e039755d609d2d0560ba",
+    "url": "https://msdl.microsoft.com/download/symbols/authui.dll/D6608A7244000/authui.dll"
+  },
+  {
+    "file": "biocredprov.dll",
+    "version": "10.0.28000.3086 (WinBuild.160101.0800)",
+    "sha256": "1d4360ea5a29e8dbaea2e6abef2c9c93024575f461546ae8a7c33bee6228e1df",
+    "url": "https://msdl.microsoft.com/download/symbols/biocredprov.dll/CB17903372000/biocredprov.dll"
+  }
+]

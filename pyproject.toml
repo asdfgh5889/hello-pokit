@@ -1,0 +1,12 @@
+[project]
+name = "hello-polkit"
+version = "0.1.0"
+description = "Personal Hello-style Quickshell Polkit frontend with MATE fallback"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+animation = ["numpy==2.5.4", "Pillow==13.0.0"]
+
+[tool.uv]
+package = false

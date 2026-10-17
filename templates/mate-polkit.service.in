@@ -1,0 +1,13 @@
+[Unit]
+Description=MATE Polkit authentication agent (Hello Polkit fallback)
+PartOf=graphical-session.target
+After=graphical-session.target
+ConditionEnvironment=WAYLAND_DISPLAY
+
+[Service]
+ExecStart=@MATE@
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=graphical-session.target
