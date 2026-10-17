@@ -1,10 +1,17 @@
 .pragma library
 
-// Only exact Gaze confirmation messages enable the face confirmation action.
-function confirmation(prompt, info, responseRequired, isError, completed) {
+var typedConfirmationPrompt = "Face Verified. Type 'yes' to confirm.";
+var verifiedInfo = "Face Verified. Press Enter to confirm.";
+
+function passwordPrompt(prompt) {
+    return prompt.trim() === "Password:";
+}
+
+// Only the supported Gaze prompt/echo combinations enable face confirmation.
+function confirmation(prompt, info, responseRequired, isError, completed, responseVisible) {
     if (!responseRequired || isError || completed) return "";
-    if (prompt.trim() === "Face Verified. Type 'yes' to confirm.") return "yes";
-    if (info.trim() === "Face Verified. Press Enter to confirm.") return "empty";
+    if (prompt.trim() === typedConfirmationPrompt && responseVisible === true) return "yes";
+    if (passwordPrompt(prompt) && responseVisible === false && info.trim() === verifiedInfo) return "empty";
     return "";
 }
 

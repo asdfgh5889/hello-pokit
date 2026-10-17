@@ -56,8 +56,9 @@ before redistributing reference-derived material.
 ## Verification
 
 `make test` runs isolated installation/backup/manifest/theme tests and offscreen
-Qt tests for confirmation guards, fallback messages, reference poses, interpolated
-motion, scan looping, and success holding. Images are saved under
+Qt tests for confirmation guards, held/repeated keys, challenge/identity changes,
+password-to-visible-response transitions, mouse consent, fallback messages,
+reference poses, interpolated motion, scan looping, and success holding. Images are saved under
 `.cache/test-artifacts/`. Set `QMLTESTRUNNER=/path/to/qt6/qmltestrunner` if detection
 fails. These checks never register an agent, invoke Polkit, alter the real XDG
 configuration, or activate services.

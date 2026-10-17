@@ -19,7 +19,13 @@ this repository. Versions used are in [TESTED.md](TESTED.md).
 The UI displays PAM messages and submits responses; it cannot independently
 recognize a face or enforce a confirmation after a PAM module already succeeds.
 Enable `require_confirmation_elevation = true` in Gaze's existing `[auth]` table.
-The exact Gaze confirmation messages are deliberately matched, not guessed.
+The exact Gaze confirmation messages and their prompt/echo combinations are
+deliberately matched, not guessed. Face confirmation is scoped to the current
+request, selected identity, and challenge. Keyboard confirmation requires a fresh
+press and release after verification; held-key repeats are ignored. The response
+field is cleared before prompt, echo-mode, identity, or request changes. Password
+selection is available only for the supported masked `Password:` prompt; other PAM
+challenges display a generic response label and their actual prompt.
 Use `templates/gaze-auth.example.toml` as a merge example. Keep password fallback.
 Gaze changes may require restarting `gazed` through your normal administration UI.
 

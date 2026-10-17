@@ -30,7 +30,7 @@ The extracted project adds portable paths, vendored icon-font lookup, optional
 preview captures, and setup/build scripts. Its automated checks run separately;
 creating the repository does not redeploy or restart the known working agent.
 
-Project verification: 7 Python tests and 12 Qt test results passed; offline build
+Project verification: 7 Python tests and 36 Qt test results passed; offline build
 and bundled preview loaded successfully. Rebuilding the animation with the locked
 dependencies reproduced the committed SHA-256 exactly.
 
@@ -38,12 +38,28 @@ Limitations: this is a personal prototype, not audited. Face recognition is
 Gaze/PAM's responsibility. The UI relies on exact English Gaze 0.3.10 messages;
 upstream wording/localization changes require review. Confirmation must be enabled
 in Gaze; otherwise PAM may complete before a confirmation UI can intervene.
-Stock Quickshell omits PolkitDetails, so full executable/command details and an
-identity-selection UI are not implemented. Requests requiring a different admin
-identity have not been tested. No system-wide authorization rules are added.
+Stock Quickshell omits PolkitDetails, so full executable/command details are not
+implemented. An identity selector is present; requests requiring a different admin
+identity have not been tested end to end. No system-wide authorization rules are
+added.
 
 Only Wayland/Niri is tested, not an X11 MATE desktop, greeters, remote sessions,
 lockers, or other distributions' PAM layouts. RGB-only facial recognition does
 not gain Windows Hello's IR/depth hardware guarantees from this UI. Gaze's
 liveness/model settings remain external. The face-success label means a pending
 PAM confirmation, not that authorization has already been granted.
+
+## Consent and challenge fixes (2026-10-17)
+
+The production `AuthConversation`, `AuthResponseField`, and `AuthSubmitButton`
+components have regression coverage for held/repeated Enter, keypad Enter and
+Space, press/release consent, stale verification tokens, identity/request/retry
+changes, cancellation/completion, draft clearing before echo-on transitions,
+password-selection restrictions, and mouse presses spanning a challenge change.
+A separate hidden mock-backend run injected native Qt key events into the full
+Quickshell dialog's card, response field, and Allow button. All three rejected
+repeats and accepted a fresh press/release. No real credentials were used.
+
+These changes address frontend findings 2, 3, and 4 from the security review. They
+do not resolve the upstream Quickshell request-queue concern or installer rollback
+finding. Clearing input is not a guarantee of secure memory erasure.

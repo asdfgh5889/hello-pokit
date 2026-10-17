@@ -6,7 +6,6 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Services.Polkit
-import "AuthState.js" as AuthState
 
 ShellRoot {
     id: root
@@ -14,31 +13,30 @@ ShellRoot {
     readonly property bool previewSuccess: Quickshell.env("HELLO_POLKIT_PREVIEW_SUCCESS") === "1"
     readonly property string captureDirectory: Quickshell.env("HELLO_POLKIT_CAPTURE_DIR") || ""
     property string previewState: Quickshell.env("HELLO_POLKIT_PREVIEW_STATE") || "scanning"
-    property string lastError: ""
-    property bool submitting: false
+    property alias lastError: authConversation.lastError
+    property alias submitting: authConversation.submitting
     property bool showDetails: false
-    property bool forcePassword: false
-    property bool confirmationFresh: false
+    property alias forcePassword: authConversation.forcePassword
     property bool wasRegistered: false
     readonly property var agent: backend.item ? backend.item.agent : null
     readonly property var flow: agent ? agent.flow : null
     readonly property string confirmKind: preview ? (previewState === "verified" ? "empty" : "") :
-        flow && confirmationFresh ? AuthState.confirmation(flow.inputPrompt, flow.supplementaryMessage,
-            flow.isResponseRequired, flow.supplementaryIsError, flow.isCompleted) : ""
+        authConversation.confirmKind
     readonly property bool verified: confirmKind !== "" && !forcePassword
-    readonly property bool cameraActive: !!flow && AuthState.cameraActive(flow.supplementaryMessage)
+    readonly property bool cameraActive: authConversation.cameraActive
     readonly property string fallbackReason: preview ? (previewState === "fallback" ? "Face not recognized. Enter your password to continue." : "") :
-        flow ? AuthState.fallbackReason(flow.supplementaryMessage) : ""
-    onFallbackReasonChanged: if (fallbackReason !== "") {
-        forcePassword = true;
-        methodMenu.close();
-        Qt.callLater(function() { response.forceActiveFocus(); });
-    }
-    onNeedsInputChanged: if (needsInput) Qt.callLater(function() { response.forceActiveFocus(); })
+        authConversation.fallbackReason
+    onNeedsInputChanged: if (needsInput) Qt.callLater(function() {
+        if (root.needsInput) response.forceActiveFocus();
+    })
+    onVerifiedChanged: if (verified) Qt.callLater(function() {
+        if (root.verified) allow.forceActiveFocus();
+    })
     readonly property bool needsInput: preview ? ["password", "fallback"].indexOf(previewState) >= 0 :
-        !!flow && flow.isResponseRequired && !verified && (forcePassword || fallbackReason !== "" || !cameraActive)
+        authConversation.needsInput
+    readonly property bool passwordResponse: preview || authConversation.passwordChallenge
     readonly property bool scanning: preview ? previewState === "scanning" :
-        !!flow && !flow.isCompleted && !verified && !needsInput && !submitting
+        !!flow && !flow.isCompleted && !flow.isCancelled && !verified && !needsInput && !submitting
     readonly property string requestMessage: preview ? "Authentication is required to install software." : flow ? flow.message : ""
     readonly property string actionId: preview ? "org.freedesktop.policykit.exec" : flow ? flow.actionId : ""
     // Preserve the supplied message; it may already contain an abbreviated command.
@@ -106,13 +104,8 @@ ShellRoot {
                 id: polkit
                 path: "/org/local/HelloPolkit"
                 onAuthenticationRequestStarted: {
-                    root.lastError = "";
-                    root.submitting = false;
                     root.showDetails = false;
                     methodMenu.close();
-                    root.forcePassword = false;
-                    root.confirmationFresh = false;
-                    response.clear();
                 }
             }
         }
@@ -127,58 +120,18 @@ ShellRoot {
             }
         }
     }
-    Connections {
-        target: root.flow
-        function onAuthenticationFailed() {
-            root.lastError = "Authentication failed. Please try your password again.";
-            root.confirmationFresh = false;
-            root.forcePassword = true;
-            root.submitting = false;
-            response.clear();
-        }
-        function onIsResponseRequiredChanged() {
-            if (root.flow && root.flow.isResponseRequired) root.submitting = false;
-            if (root.flow && root.flow.isResponseRequired) Qt.callLater(function() {
-                if (root.verified) allow.forceActiveFocus();
-                else if (root.needsInput) response.forceActiveFocus();
-            });
-        }
-        function onInputPromptChanged() {
-            if (root.flow && root.flow.inputPrompt.trim() === "Face Verified. Type 'yes' to confirm.") root.confirmationFresh = true;
-        }
-        function onSupplementaryMessageChanged() {
-            root.confirmationFresh = !!root.flow && root.flow.supplementaryMessage.trim() === "Face Verified. Press Enter to confirm.";
-            if (root.verified) Qt.callLater(function() { allow.forceActiveFocus(); });
-        }
+    AuthConversation {
+        id: authConversation
+        flow: root.flow
+        input: response
     }
     onFlowChanged: {
-        response.clear();
-        submitting = false;
-        lastError = "";
-        forcePassword = false;
-        confirmationFresh = false;
+        showDetails = false;
+        methodMenu.close();
     }
     function cancel() {
-        response.clear();
         if (preview) Qt.quit();
-        else if (flow) flow.cancelAuthenticationRequest();
-    }
-    function submit() {
-        // These are the only authorization submissions. No timer or animation submits.
-        if (preview) return;
-        if (!flow || flow.isCompleted || !flow.isResponseRequired || submitting) return;
-        if (verified) {
-            const answer = confirmKind === "yes" ? "yes" : "";
-            confirmationFresh = false;
-            submitting = true;
-            flow.submit(answer);
-        } else if (response.text.length > 0) {
-            const answer = response.text;
-            response.clear();
-            confirmationFresh = false;
-            submitting = true;
-            flow.submit(answer);
-        }
+        else authConversation.cancel();
     }
 
     Theme { id: paletteTheme }
@@ -204,8 +157,8 @@ ShellRoot {
             clip: true
             focus: true
             Keys.onEscapePressed: root.cancel()
-            Keys.onReturnPressed: root.submit()
-            Keys.onEnterPressed: root.submit()
+            Keys.onPressed: function(event) { authConversation.handleKey(event, true, false); }
+            Keys.onReleased: function(event) { authConversation.handleKey(event, false, false); }
 
             Popup {
                 id: methodMenu
@@ -230,8 +183,7 @@ ShellRoot {
                         enabled: !root.submitting && (root.preview || root.cameraActive || root.confirmKind !== "")
                         onClicked: {
                             if (root.preview) root.previewState = "scanning";
-                            root.forcePassword = false;
-                            response.clear();
+                            authConversation.chooseFace();
                             methodMenu.close();
                             if (root.verified) allow.forceActiveFocus();
                         }
@@ -242,10 +194,10 @@ ShellRoot {
                         theme: paletteTheme
                         selected: root.needsInput
                         Layout.fillWidth: true
-                        enabled: !root.submitting && (root.preview || (!!root.flow && root.flow.isResponseRequired))
+                        enabled: !root.submitting && (root.preview || authConversation.canSelectPassword)
                         onClicked: {
                             if (root.preview) root.previewState = "password";
-                            root.forcePassword = true;
+                            if (!root.preview && !authConversation.choosePassword()) return;
                             methodMenu.close();
                             response.forceActiveFocus();
                         }
@@ -325,7 +277,7 @@ ShellRoot {
                             border.color: paletteTheme.outline
                             border.width: 1
                         }
-                        onActivated: function(index) { root.confirmationFresh = false; root.forcePassword = false; response.clear(); root.flow.selectedIdentity = root.flow.identities[index]; }
+                        onActivated: function(index) { authConversation.resetRequest(); root.flow.selectedIdentity = root.flow.identities[index]; }
                     }
                     ScrollView {
                         id: requestDetailView
@@ -390,7 +342,7 @@ ShellRoot {
                     Layout.leftMargin: 28
                     Layout.rightMargin: 28
                     Layout.topMargin: 8
-                    text: root.verified ? "Face verified" : root.needsInput ? "Use your password" : root.submitting ? "Authenticating…" : "Looking for you…"
+                    text: root.verified ? "Face verified" : root.needsInput ? (root.passwordResponse ? "Use your password" : "Authentication response") : root.submitting ? "Authenticating…" : "Looking for you…"
                     textFormat: Text.PlainText
                     color: root.verified ? paletteTheme.success : paletteTheme.text
                     horizontalAlignment: Text.AlignHCenter
@@ -403,15 +355,17 @@ ShellRoot {
                     Layout.leftMargin: 28
                     Layout.rightMargin: 28
                     Layout.topMargin: 8
-                    text: root.verified ? "Confirm below or press Enter to continue." : root.needsInput ? (root.fallbackReason || "Enter your account password to authorize.") : root.submitting ? "Checking your response…" : "Look at the camera. You’ll confirm before continuing."
+                    text: root.verified ? "Confirm below or press Enter to continue." : root.needsInput ? (root.passwordResponse ? (root.fallbackReason || "Enter your account password to authorize.") : "Enter the requested response to continue.") : root.submitting ? "Checking your response…" : "Look at the camera. You’ll confirm before continuing."
                     color: paletteTheme.muted
                     textFormat: Text.PlainText
                     font.pixelSize: 13
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
                 }
-                TextField { font.family: paletteTheme.fontFamily;
+                AuthResponseField {
                     id: response
+                    conversation: authConversation
+                    theme: paletteTheme
                     visible: root.needsInput
                     enabled: !root.submitting
                     Layout.fillWidth: true
@@ -419,19 +373,7 @@ ShellRoot {
                     Layout.rightMargin: 36
                     Layout.topMargin: 18
                     Layout.preferredHeight: 44
-                    color: paletteTheme.text
-                    placeholderTextColor: paletteTheme.muted
-                    selectionColor: paletteTheme.primary
-                    selectedTextColor: paletteTheme.onPrimary
-                    font.pixelSize: 15
-                    leftPadding: 14
-                    rightPadding: 14
-                    echoMode: root.flow && root.flow.responseVisible ? TextInput.Normal : TextInput.Password
                     placeholderText: root.preview ? "Password" : root.flow ? root.flow.inputPrompt.trim() : "Password"
-                    selectByMouse: true
-                    background: Rectangle { radius: paletteTheme.radiusMd; color: paletteTheme.raised; border.width: response.activeFocus ? 2 : 1; border.color: response.activeFocus ? paletteTheme.primary : paletteTheme.outline }
-                    onAccepted: root.submit()
-                    Accessible.name: "Authentication response"
                 }
                 Text { font.family: paletteTheme.fontFamily;
                     visible: root.lastError !== "" || (!!root.flow && root.flow.supplementaryIsError)
@@ -472,8 +414,9 @@ ShellRoot {
                         anchors.fill: parent
                         anchors.margins: 24
                         spacing: 12
-                        AuthButton {
+                        AuthSubmitButton {
                             id: allow
+                            conversation: authConversation
                             text: root.verified ? "Allow" : "Authenticate"
                             glyph: root.verified ? "\uea5e" : "\ueae2"
                             theme: paletteTheme
@@ -482,8 +425,6 @@ ShellRoot {
                             Layout.preferredWidth: 1
                             Layout.preferredHeight: 40
                             enabled: !root.submitting && (root.verified || (root.needsInput && response.text.length > 0))
-                            onClicked: root.submit()
-                            Keys.onReturnPressed: root.submit()
                         }
                         AuthButton {
                             text: "Cancel"

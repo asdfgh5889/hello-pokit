@@ -5,19 +5,19 @@ import "../../qml/AuthState.js" as AuthState
 TestCase {
     name: "FaceConfirmationSafety"
     function test_responseMustBeRequested() {
-        compare(AuthState.confirmation("Password:", "Face Verified. Press Enter to confirm.", false, false, false), "");
+        compare(AuthState.confirmation("Password:", "Face Verified. Press Enter to confirm.", false, false, false, false), "");
     }
     function test_completedOrErrorCannotConfirm() {
-        compare(AuthState.confirmation("Password:", "Face Verified. Press Enter to confirm.", true, false, true), "");
-        compare(AuthState.confirmation("Password:", "Face Verified. Press Enter to confirm.", true, true, false), "");
+        compare(AuthState.confirmation("Password:", "Face Verified. Press Enter to confirm.", true, false, true, false), "");
+        compare(AuthState.confirmation("Password:", "Face Verified. Press Enter to confirm.", true, true, false, false), "");
     }
     function test_exactMessagesOnly() {
-        compare(AuthState.confirmation("Password:", "Face Verified. Press Enter to confirm.", true, false, false), "empty");
-        compare(AuthState.confirmation("Face Verified. Type 'yes' to confirm.", "", true, false, false), "yes");
-        compare(AuthState.confirmation("Password:", "Face Verified.", true, false, false), "");
-        compare(AuthState.confirmation("Password:", "Not Face Verified. Press Enter to confirm.", true, false, false), "");
-        compare(AuthState.confirmation("Password:", "Please look at the camera", true, false, false), "");
-        compare(AuthState.confirmation("One-time code:", "", true, false, false), "");
+        compare(AuthState.confirmation("Password:", "Face Verified. Press Enter to confirm.", true, false, false, false), "empty");
+        compare(AuthState.confirmation("Face Verified. Type 'yes' to confirm.", "", true, false, false, true), "yes");
+        compare(AuthState.confirmation("Password:", "Face Verified.", true, false, false, false), "");
+        compare(AuthState.confirmation("Password:", "Not Face Verified. Press Enter to confirm.", true, false, false, false), "");
+        compare(AuthState.confirmation("Password:", "Please look at the camera", true, false, false, false), "");
+        compare(AuthState.confirmation("One-time code:", "", true, false, false, false), "");
     }
     function test_cameraFailureFallsBackToPassword() {
         const failures = ["Face not recognized. Enter your password.",
@@ -28,8 +28,15 @@ TestCase {
         for (let info of failures) {
             verify(AuthState.fallbackReason(info).length > 0);
             verify(!AuthState.cameraActive(info));
-            compare(AuthState.confirmation("Password:", info, true, false, false), "");
+            compare(AuthState.confirmation("Password:", info, true, false, false, false), "");
         }
+    }
+    function test_confirmationMustMatchPromptAndEcho() {
+        const info = AuthState.verifiedInfo;
+        compare(AuthState.confirmation("One-time code:", info, true, false, false, false), "");
+        compare(AuthState.confirmation("Password:", info, true, false, false, true), "");
+        compare(AuthState.confirmation(AuthState.typedConfirmationPrompt, "", true, false, false, false), "");
+        compare(AuthState.confirmation("Password: ", info, true, false, false, false), "empty");
     }
     function test_scanningAndSuccessDoNotTriggerFallback() {
         verify(AuthState.cameraActive("Please look at the camera or enter password"));

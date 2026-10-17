@@ -109,7 +109,10 @@ not endorsements or redistribution permissions; see [NOTICE](NOTICE.md).
 
 ## Rendering, helpers, and build tooling
 
-- Qt [Rectangle](https://doc.qt.io/qt-6/qml-qtquick-rectangle.html),
+- Qt [key handling](https://doc.qt.io/qt-6/qml-qtquick-keys.html),
+  [QKeyEvent auto-repeat](https://doc.qt.io/qt-6/qkeyevent.html#isAutoRepeat),
+  [TextInput echo/masking](https://doc.qt.io/qt-6/qml-qtquick-textinput.html),
+  [Rectangle](https://doc.qt.io/qt-6/qml-qtquick-rectangle.html),
   [Shape](https://doc.qt.io/qt-6/qml-qtquick-shapes-shape.html),
   [ShapePath](https://doc.qt.io/qt-6/qml-qtquick-shapes-shapepath.html),
   [PathSvg](https://doc.qt.io/qt-6/qml-qtquick-pathsvg.html),

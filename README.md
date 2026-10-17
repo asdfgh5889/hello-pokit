@@ -9,7 +9,7 @@ This is an experimental personal setup, not a supported authentication product.
 See [notices and asset provenance](NOTICE.md).
 
 - Face recognition first through Gaze/PAM; password fallback and a Sign-in options menu.
-- Clear face-success state; explicit **Allow / Enter** confirmation when Gaze confirmation is enabled.
+- Clear face-success state; explicit **Allow / fresh Enter press-and-release** confirmation when Gaze confirmation is enabled.
 - Noctalia colors, font family, corner radii, and button styling update with the theme.
 - Smooth vector face animation ending in Tux; correctly rounded footer corners.
 - Request text and action ID under Details. Stock Quickshell does not expose full
